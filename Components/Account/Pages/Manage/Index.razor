@@ -1,0 +1,150 @@
+﻿@page "/Account/Manage"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using SMSChat.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>SIP Profile</PageTitle>
+
+<h3>SIP Profile</h3>
+<StatusMessage />
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="form-floating mb-3">
+                <input type="text" value="@username" class="form-control" placeholder="Please choose your username." disabled />
+                <label for="username" class="form-label">Username</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number." />
+                <label for="phone-number" class="form-label">Phone number</label>
+                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.SipPhoneNumber" class="form-control" placeholder="Please enter your SIP phone number." />
+                <label for="sip-phone-number" class="form-label">SIP Phone Number</label>
+                <ValidationMessage For="() => Input.SipPhoneNumber" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.SipUserName" class="form-control" placeholder="Please enter your SIP username." />
+                <label for="sip-user-name" class="form-label">SIP User Name</label>
+                <ValidationMessage For="() => Input.SipUserName" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.SipServer" class="form-control" placeholder="Please enter your SIP server." />
+                <label for="sip-server" class="form-label">SIP Server</label>
+                <ValidationMessage For="() => Input.SipServer" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.SipPassword" class="form-control" placeholder="Please enter your SIP password." />
+                <label for="sip-password" class="form-label">SIP Password</label>
+                <ValidationMessage For="() => Input.SipPassword" class="text-danger" />
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private ApplicationUser user = default!;
+    private string? username;
+    private string? phoneNumber;
+    private string? sipPhoneNumber;
+    private string? sipUserName;
+    private string? sipServer;
+    private string? sipPassword;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        username = await UserManager.GetUserNameAsync(user);
+        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+        sipPhoneNumber = user.SipPhoneNumber;
+        sipUserName = user.SipUserName;
+        sipServer = user.SipServer;
+        sipPassword = user.SipPassword;
+
+        Input.PhoneNumber ??= phoneNumber;
+        Input.SipPhoneNumber ??= sipPhoneNumber;
+        Input.SipUserName ??= sipUserName;
+        Input.SipServer ??= sipServer;
+        Input.SipPassword ??= sipPassword;
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (Input.PhoneNumber != phoneNumber)
+        {
+            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+            if (!setPhoneResult.Succeeded)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
+                return;
+            }
+        }
+
+        if (Input.SipPhoneNumber != sipPhoneNumber)
+        {
+            user.SipPhoneNumber = Input.SipPhoneNumber;
+        }
+
+        if (Input.SipUserName != sipUserName)
+        {
+            user.SipUserName = Input.SipUserName;
+        }
+
+        if (Input.SipServer != sipServer)
+        {
+            user.SipServer = Input.SipServer;
+        }
+
+        if (Input.SipPassword != sipPassword)
+        {
+            user.SipPassword = Input.SipPassword;
+        }
+
+        var updateResult = await UserManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to update user profile.", HttpContext);
+            return;
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+    }
+
+    private sealed class InputModel
+    {
+        [Phone]
+        [Display(Name = "Phone number")]
+        public string? PhoneNumber { get; set; }
+
+        [Display(Name = "SIP Phone Number")]
+        public string? SipPhoneNumber { get; set; }
+
+        [Display(Name = "SIP User Name")]
+        public string? SipUserName { get; set; }
+
+        [Display(Name = "SIP Server")]
+        public string? SipServer { get; set; }
+
+        [DataType(DataType.Password)]
+        [Display(Name = "SIP Password")]
+        public string? SipPassword { get; set; }
+    }
+}

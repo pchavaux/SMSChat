@@ -1,0 +1,230 @@
+﻿@page "/sms"
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Newtonsoft.Json
+@using SMSChat.Services
+@using SMSChat.Data
+@using SMSChat.Models
+@using Microsoft.Extensions.Logging
+@inject ILogger<SmsPage> _logger
+@inject VoipMsSmsService SmsService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ApplicationDbContext DbContext
+
+@rendermode InteractiveServer
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-sm-12 bg-light border-end" style="min-height: 100vh;">
+            <h4 class="mt-3">Friends List</h4>
+            <ul class="list-group">
+                @foreach (var friend in Friends)
+                {
+                    <li class="list-group-item list-group-item-action" style="cursor: pointer;" @ondblclick="DoubleClick" @onclick="(() => SelectFriend(friend))">
+                        <strong>@friend.Name</strong><br />
+                        <small>@friend.PhoneNumber</small>
+                    </li>
+                }
+            </ul>
+            <div class="mt-4">
+                <h5>@AddOrEdit</h5>
+                <input class="form-control mb-2" placeholder="Name" @bind="NewFriendName" />
+                <input class="form-control mb-2" placeholder="Phone Number" @bind="NewFriendPhone" />
+                <button class="btn btn-primary w-100" @onclick="SaveFriend">Save</button>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="col-md-9 col-sm-6">
+            <div class="p-3">
+                <h3>My SMS number is @FormatPhone(UserPhoneNumber)</h3>
+                <div class="border rounded bg-light p-3 mb-3" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column-reverse;">
+                    @if (SelectedFriend == null)
+                    {
+                        <p>Select a friend to view messages.</p>
+                    }
+                    else if (SelectedMessages == null || !SelectedMessages.Any())
+                    {
+                        <p>No messages available.</p>
+                    }
+                    else
+                    {
+                        @foreach (var message in SelectedMessages.OrderBy(m => m.Date))
+                        {
+                            <div class="mb-2">
+                                @if (message.Type == "0")
+                                {
+
+                                    <div class="text-end text-danger">
+                                        <span style="font-size: 12px;">[@UserPhoneNumber] @FormatDate(message.Date)</span><br />
+                                        @message.Message
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-start text-secondary">
+                                        <span style="font-size: 12px;">[@RecipientNumber] @FormatDate(message.Date)</span><br />
+                                        @message.Message
+
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+
+                <div>
+                    <input class="form-control mb-2" placeholder="Type a message..." @bind="SmsText" />
+                    <button class="btn btn-primary" @onclick="SendSms">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string RecipientNumber;
+    private string SmsText;
+    private string UserPhoneNumber;
+    private string SipPhoneNumber;
+    private string SipUserName;
+    private string SipServer;
+    private string SipPassword;
+    private string AddOrEdit = "Add/Edit Friend";
+    private string NewFriendName;
+    private string NewFriendPhone;
+    private List<Friend> Friends = new();
+
+    private Friend SelectedFriend;
+    private IEnumerable<SmsMessage> SelectedMessages;
+    private string userId { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = authState.User;
+
+        if (currentUser.Identity != null && currentUser.Identity.IsAuthenticated)
+        {
+            var userName = currentUser.Identity.Name;
+            var user = await UserManager.Users.FirstOrDefaultAsync(u => u.UserName == userName);
+            userId = user.Id.ToString();
+            if (user != null)
+            {
+                UserPhoneNumber = user.PhoneNumber;
+                SipPhoneNumber = user.SipPhoneNumber;
+
+                // Load friends from the database
+                Friends = await DbContext.Friends
+                    .Where(f => f.FriendSipPhoneNumber == SipPhoneNumber)
+                    .ToListAsync();
+            }
+        }
+    }
+
+    private async Task SendSms()
+    {
+        if (SelectedFriend == null || string.IsNullOrWhiteSpace(SmsText)) return;
+
+        RecipientNumber = SelectedFriend.PhoneNumber;
+        var success = await SmsService.SendSmsAsync(UserPhoneNumber, RecipientNumber, SmsText);
+        if (success)
+        {
+            SmsText = string.Empty;
+            await LoadMessages();
+        }
+    }
+
+    private void SelectFriend(Friend friend)
+    {
+        SelectedFriend = friend;
+        RecipientNumber = friend.PhoneNumber;
+        AddOrEdit = "Edit Friend";
+        // Populate the input fields with the selected friend's data
+        NewFriendName = friend.Name;
+        NewFriendPhone = friend.PhoneNumber;
+        LoadMessages();
+    }
+
+    private async Task LoadMessages()
+    {
+        if (SelectedFriend == null) return;
+
+        _logger.LogInformation("Loading messages for {PhoneNumber}", SelectedFriend.PhoneNumber);
+        SelectedMessages = await SmsService.GetSmsMessagesAsync(UserPhoneNumber);
+        SelectedMessages = SelectedMessages?.Where(m => m.Contact == SelectedFriend.PhoneNumber);
+
+        StateHasChanged();
+    }
+
+    private async Task SaveFriend()
+    {
+        if (string.IsNullOrWhiteSpace(NewFriendName) || string.IsNullOrWhiteSpace(NewFriendPhone)) return;
+
+        if (SelectedFriend == null)
+        {
+            // Add new friend
+            var newFriend = new Friend
+                {
+                    Name = NewFriendName,
+                    PhoneNumber = NewFriendPhone,
+                    FriendSipPhoneNumber = SipPhoneNumber,
+                    UserId = userId
+                };
+            try
+            {
+                DbContext.Friends.Add(newFriend);
+                await DbContext.SaveChangesAsync();
+            }catch(Exception ex)
+            {
+                _logger.LogInformation("Error:" + ex.Message);
+            }
+
+
+            Friends.Add(newFriend);
+        }
+        else
+        {
+            // Update existing friend
+            SelectedFriend.Name = NewFriendName;
+            SelectedFriend.PhoneNumber = NewFriendPhone;
+
+            DbContext.Friends.Update(SelectedFriend);
+            await DbContext.SaveChangesAsync();
+        }
+        ClearFields();
+        AddOrEdit = "Add/Edit Friend";
+        StateHasChanged();
+    }
+    public void ClearFields()
+    {
+          NewFriendName = string.Empty;
+        NewFriendPhone = string.Empty;
+        SelectedFriend = null;
+    }
+    private string FormatDate(string dateString)
+    {
+        if (DateTime.TryParse(dateString, out var date))
+        {
+            return date.ToString("MM/dd HH:mm");
+        }
+        return dateString;
+    }
+private string FormatPhone(string phoneString)
+{
+    if (!string.IsNullOrWhiteSpace(phoneString) && phoneString.Length == 10 && long.TryParse(phoneString, out _))
+    {
+        return $"({phoneString.Substring(0, 3)}) {phoneString.Substring(3, 3)}-{phoneString.Substring(6)}";
+    }
+    return phoneString; // Return the original string if it's not a valid 10-digit phone number
+}
+
+    public void DoubleClick()
+    {
+        AddOrEdit = "Add Friend";
+        ClearFields();
+    }
+
+}
