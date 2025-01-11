@@ -16,7 +16,7 @@ string bearerToken = "S0hCVVhjY25WS3dUUTRuL0hLT0tEUUVkMnczWTFJSW8vamtNMWhlcXN6TT
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://voip.ms") });
 builder.Services.AddScoped(sp => new VoipMsSmsService(sp.GetRequiredService<HttpClient>(), bearerToken));
-builder.Services.AddScoped<SipService>();
+//builder.Services.AddScoped<SipService>();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
