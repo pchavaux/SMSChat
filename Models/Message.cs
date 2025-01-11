@@ -15,7 +15,6 @@ namespace SMSChat.Models
             public bool IsRead { get; set; }
             public string MessageType { get; set; } // e.g., "sent" or "received"
 
-
             // Foreign Key to ChatThread
             public int ChatThreadId { get; set; }
             public ChatThread ChatThread { get; set; } // Navigation property
