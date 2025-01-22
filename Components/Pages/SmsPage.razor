@@ -99,7 +99,8 @@
     private List<Friend> Friends = new();
 
     private Friend SelectedFriend;
-    private IEnumerable<SmsMessage> SelectedMessages;
+    private IEnumerable<SMSChat.Models.SmsMessage> SelectedMessages = Enumerable.Empty<SMSChat.Models.SmsMessage>();
+
     private string userId { get; set; }
     protected override async Task OnInitializedAsync()
     {
@@ -110,11 +111,11 @@
         {
             var userName = currentUser.Identity.Name;
             var user = await UserManager.Users.FirstOrDefaultAsync(u => u.UserName == userName);
-            userId = user.Id.ToString();
+            userId = user?.Id?.ToString();
             if (user != null)
             {
-                UserPhoneNumber = user.PhoneNumber;
-                SipPhoneNumber = user.SipPhoneNumber;
+                UserPhoneNumber = user.PhoneNumber ?? string.Empty;
+                SipPhoneNumber = user.SipPhoneNumber ?? string.Empty;
 
                 // Load friends from the database
                 Friends = await DbContext.Friends
@@ -145,7 +146,7 @@
         // Populate the input fields with the selected friend's data
         NewFriendName = friend.Name;
         NewFriendPhone = friend.PhoneNumber;
-        LoadMessages();
+        _ = LoadMessages();
     }
 
     private async Task LoadMessages()
@@ -153,8 +154,15 @@
         if (SelectedFriend == null) return;
 
         _logger.LogInformation("Loading messages for {PhoneNumber}", SelectedFriend.PhoneNumber);
-        SelectedMessages = await SmsService.GetSmsMessagesAsync(UserPhoneNumber);
-        SelectedMessages = SelectedMessages?.Where(m => m.Contact == SelectedFriend.PhoneNumber);
+        var serviceMessages = await SmsService.GetSmsMessagesAsync(UserPhoneNumber);
+        SelectedMessages = serviceMessages?.Select(m => new SMSChat.Models.SmsMessage
+            {
+                Id = m.Id,
+                Date = m.Date,
+                Type = m.Type,
+                Message = m.Message,
+                Contact = m.Contact
+            }).Where(m => m.Contact == SelectedFriend.PhoneNumber) ?? Enumerable.Empty<SMSChat.Models.SmsMessage>();
 
         StateHasChanged();
     }
@@ -177,11 +185,11 @@
             {
                 DbContext.Friends.Add(newFriend);
                 await DbContext.SaveChangesAsync();
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogInformation("Error:" + ex.Message);
             }
-
 
             Friends.Add(newFriend);
         }
@@ -198,12 +206,14 @@
         AddOrEdit = "Add/Edit Friend";
         StateHasChanged();
     }
+
     public void ClearFields()
     {
-          NewFriendName = string.Empty;
+        NewFriendName = string.Empty;
         NewFriendPhone = string.Empty;
         SelectedFriend = null;
     }
+
     private string FormatDate(string dateString)
     {
         if (DateTime.TryParse(dateString, out var date))
@@ -212,19 +222,19 @@
         }
         return dateString;
     }
-private string FormatPhone(string phoneString)
-{
-    if (!string.IsNullOrWhiteSpace(phoneString) && phoneString.Length == 10 && long.TryParse(phoneString, out _))
+
+    private string FormatPhone(string phoneString)
     {
-        return $"({phoneString.Substring(0, 3)}) {phoneString.Substring(3, 3)}-{phoneString.Substring(6)}";
+        if (!string.IsNullOrWhiteSpace(phoneString) && phoneString.Length == 10 && long.TryParse(phoneString, out _))
+        {
+            return $"({phoneString.Substring(0, 3)}) {phoneString.Substring(3, 3)}-{phoneString.Substring(6)}";
+        }
+        return phoneString; // Return the original string if it's not a valid 10-digit phone number
     }
-    return phoneString; // Return the original string if it's not a valid 10-digit phone number
-}
 
     public void DoubleClick()
     {
         AddOrEdit = "Add Friend";
         ClearFields();
     }
-
 }

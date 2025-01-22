@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMSChat.Data;
 
@@ -11,13 +12,15 @@ using SMSChat.Data;
 namespace SMSChat.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250117223143_InitConfigure")]
+    partial class InitConfigure
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -155,7 +158,7 @@ namespace SMSChat.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("SMSChat.Data.ApplicationUser", b =>
+            modelBuilder.Entity("SMSVideoChat9.Data.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -232,7 +235,7 @@ namespace SMSChat.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("SMSChat.Models.Attachment", b =>
+            modelBuilder.Entity("SharedLibrary.Models.Attachment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -253,37 +256,10 @@ namespace SMSChat.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MessageId");
-
                     b.ToTable("Attachments");
                 });
 
-            modelBuilder.Entity("SMSChat.Models.Channel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SipNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Channels");
-                });
-
-            modelBuilder.Entity("SMSChat.Models.ChatThread", b =>
+            modelBuilder.Entity("SharedLibrary.Models.ChatThread", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -307,7 +283,7 @@ namespace SMSChat.Migrations
                     b.ToTable("ChatThreads");
                 });
 
-            modelBuilder.Entity("SMSChat.Models.Customer", b =>
+            modelBuilder.Entity("SharedLibrary.Models.Customer", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -336,7 +312,7 @@ namespace SMSChat.Migrations
                     b.ToTable("Customers");
                 });
 
-            modelBuilder.Entity("SMSChat.Models.Friend", b =>
+            modelBuilder.Entity("SharedLibrary.Models.Friend", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -358,16 +334,14 @@ namespace SMSChat.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Friends");
                 });
 
-            modelBuilder.Entity("SMSChat.Models.Message", b =>
+            modelBuilder.Entity("SharedLibrary.Models.Message", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -376,9 +350,6 @@ namespace SMSChat.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ChatThreadId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ChatThreadId1")
                         .HasColumnType("int");
 
                     b.Property<string>("Content")
@@ -407,12 +378,10 @@ namespace SMSChat.Migrations
 
                     b.HasIndex("ChatThreadId");
 
-                    b.HasIndex("ChatThreadId1");
-
                     b.ToTable("Messages");
                 });
 
-            modelBuilder.Entity("SMSChat.Models.SystemCredentials", b =>
+            modelBuilder.Entity("SharedLibrary.Models.SystemCredentials", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -440,34 +409,6 @@ namespace SMSChat.Migrations
                     b.ToTable("SystemCredentials");
                 });
 
-            modelBuilder.Entity("SMSChat.Models.Thread", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ChannelId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SipNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Threads");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -479,7 +420,7 @@ namespace SMSChat.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("SMSChat.Data.ApplicationUser", null)
+                    b.HasOne("SMSVideoChat9.Data.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -488,7 +429,7 @@ namespace SMSChat.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("SMSChat.Data.ApplicationUser", null)
+                    b.HasOne("SMSVideoChat9.Data.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -503,7 +444,7 @@ namespace SMSChat.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SMSChat.Data.ApplicationUser", null)
+                    b.HasOne("SMSVideoChat9.Data.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -512,51 +453,25 @@ namespace SMSChat.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("SMSChat.Data.ApplicationUser", null)
+                    b.HasOne("SMSVideoChat9.Data.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SMSChat.Models.Attachment", b =>
+            modelBuilder.Entity("SharedLibrary.Models.Message", b =>
                 {
-                    b.HasOne("SMSChat.Models.Message", null)
-                        .WithMany()
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("SMSChat.Models.Friend", b =>
-                {
-                    b.HasOne("SMSChat.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SMSChat.Models.Message", b =>
-                {
-                    b.HasOne("SMSChat.Models.ChatThread", null)
+                    b.HasOne("SharedLibrary.Models.ChatThread", "ChatThread")
                         .WithMany("Messages")
                         .HasForeignKey("ChatThreadId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SMSChat.Models.ChatThread", "ChatThread")
-                        .WithMany()
-                        .HasForeignKey("ChatThreadId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ChatThread");
                 });
 
-            modelBuilder.Entity("SMSChat.Models.ChatThread", b =>
+            modelBuilder.Entity("SharedLibrary.Models.ChatThread", b =>
                 {
                     b.Navigation("Messages");
                 });

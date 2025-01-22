@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SMSChat.Models;
+using Thread = SMSChat.Models.Thread;
 
 namespace SMSChat.Data
 {
@@ -15,9 +16,12 @@ namespace SMSChat.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<SystemCredentials> SystemCredentials { get; set; }
         public DbSet<Friend> Friends { get; set; }
+        public DbSet<Customer> Customers { get; set; }
         public DbSet<ChatThread> ChatThreads { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
- 
+        public DbSet<Channel> Channels { get; set; }
+        public DbSet<Thread> Threads { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
