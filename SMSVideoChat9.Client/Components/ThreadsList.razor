@@ -1,0 +1,111 @@
+﻿@page "/threadslist"
+@using SharedLibrary.Models
+@inject SMSVideoChat9.Client.Services.ICustomerService customerService
+
+<div class="list-group">
+    @foreach (var thread in threads)
+    {
+        <div class="list-group-item @(selectedThread?.Id == thread.Id ? "active" : "")"
+             @onclick="() => SelectThread(thread)"
+             @ondblclick="() => EditThread(thread)">
+            <h5 class="mb-1">@thread.Name</h5>
+            <p class="mb-1">@thread.Description</p>
+        </div>
+    }
+</div>
+
+@if (isEditing)
+{
+    <div class="modal" tabindex="-1" style="display: block;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingThread?.Id > 0 ? "Edit" : "Add") Thread</h5>
+                    <button type="button" class="btn-close" @onclick="CancelEdit"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" class="form-control" @bind="editingThread.Name" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" class="form-control" @bind="editingThread.Description" />
+                    </div>
+                    <div class="form-group">
+                        <label>SIP Number</label>
+                        <input type="text" class="form-control" @bind="editingThread.SipNumber" />
+                    </div>
+                    <div class="form-group">
+                        <label>Channel Id</label>
+                        <input type="text" class="form-control" @bind="editingThread.ChannelId" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveThread">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Thread> threads = new();
+    private Thread selectedThread;
+    private Thread editingThread;
+    private bool isEditing;
+
+    [Parameter]
+    public EventCallback<Thread> OnThreadSelected { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadThreads();
+    }
+
+    private async Task LoadThreads()
+    {
+        threads = await customerService.GetThreadsAsync();
+    }
+
+    private async Task SelectThread(Thread thread)
+    {
+        selectedThread = thread;
+        await OnThreadSelected.InvokeAsync(thread);
+    }
+
+    private void EditThread(Thread thread)
+    {
+        editingThread = new Thread
+            {
+                Id = thread.Id,
+                Name = thread.Name,
+                Description = thread.Description,
+                SipNumber = thread.SipNumber,
+                ChannelId = thread.ChannelId
+            };
+        isEditing = true;
+    }
+
+    private async Task SaveThread()
+    {
+        if (editingThread.Id == 0)
+        {
+            await customerService.AddThreadAsync(editingThread);
+        }
+        else
+        {
+            await customerService.UpdateThreadAsync(editingThread);
+        }
+
+        isEditing = false;
+        await LoadThreads();
+    }
+
+    private void CancelEdit()
+    {
+        isEditing = false;
+        editingThread = null;
+    }
+}

@@ -1,38 +1,68 @@
 ﻿@page "/sms"
 
-
-
 @using SMSVideoChat9.Client.Services
 @using SharedLibrary.Models
 @using Microsoft.Extensions.Logging
 @inject ILogger<SmsPage> _logger 
-@* @inject VoipMsSmsService SmsService *@
 @inject ICustomerService customerService
-@* @inject IFriendService friendsService
- *@
- @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveWebAssembly
-
 
 <div class="container-fluid">
     <div class="row">
+        <!-- Hamburger Menu Button -->
+        <div class="col-12 d-md-none">
+            <button class="btn btn-primary hamburger-btn" @onclick="ToggleSidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
         <!-- Sidebar -->
-        <div class="col-md-3 col-sm-12 bg-light border-end" style="min-height: 100vh;">
-            <h4 class="mt-3">Friends List</h4>
-            <ul class="list-group">
-                @foreach (var friend in Friends)
-                {
-                    <li class="list-group-item list-group-item-action" style="cursor: pointer;" @ondblclick="DoubleClick" @onclick="(() => SelectFriend(friend))">
-                        <strong>@friend.Name</strong><br />
-                        <small>@friend.PhoneNumber</small>
+        <div class="@(IsSidebarOpen ? "col-md-3 sidebar show" : "col-md-3 sidebar") bg-light border-end" style="min-height: 100vh;">
+            <div class="sidebar-content">
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-tabs nav-fill mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link @(CurrentTab == "Friends" ? "active" : "")" @onclick='() => SwitchTab("Friends")'>Friends</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(CurrentTab == "Channels" ? "active" : "")" @onclick='() => SwitchTab("Channels")'>Channels</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(CurrentTab == "Threads" ? "active" : "")" @onclick='() => SwitchTab("Threads")'>Threads</a>
+                    </li>
+                </ul>
+
+                <!-- Content based on selected tab -->
+                @switch (CurrentTab)
+                {
+                    case "Friends":
+                        <div>
+                            <h4 class="mt-3">Friends List</h4>
+                            <ul class="list-group">
+                                @foreach (var friend in Friends)
+                                {
+                                    <li class="list-group-item list-group-item-action" style="cursor: pointer;" @ondblclick="DoubleClick" @onclick="(() => SelectFriend(friend))">
+                                        <strong>@friend.Name</strong><br />
+                                        <small>@friend.PhoneNumber</small>
+                                    </li>
+                                }
+                            </ul>
+                            <div class="mt-4">
+                                <h5>@AddOrEdit</h5>
+                                <input class="form-control mb-2" placeholder="Name" @bind="NewFriendName" />
+                                <input class="form-control mb-2" placeholder="Phone Number" @bind="NewFriendPhone" />
+                                <button class="btn btn-primary w-100" @onclick="SaveFriend">Save</button>
+                            </div>
+                        </div>
+                        break;
+                    case "Channels":
+                        <ChannelsList OnChannelSelected="HandleChannelSelected" />
+                        break;
+                    case "Threads":
+                        <ThreadsList OnThreadSelected="HandleThreadSelected" />
+                        break;
                 }
-            </ul>
-            <div class="mt-4">
-                <h5>@AddOrEdit</h5>
-                <input class="form-control mb-2" placeholder="Name" @bind="NewFriendName" />
-                <input class="form-control mb-2" placeholder="Phone Number" @bind="NewFriendPhone" />
-                <button class="btn btn-primary w-100" @onclick="SaveFriend">Save</button>
             </div>
         </div>
 
@@ -56,11 +86,9 @@
                             <div class="mb-2">
                                 @if (message.Type == "0")
                                 {
-
                                     <div class="text-end text-danger">
                                         <span style="font-size: 12px;">[@UserPhoneNumber] @FormatDate(message.Date)</span><br />
                                         @message.Message
-
                                     </div>
                                 }
                                 else
@@ -68,7 +96,6 @@
                                     <div class="text-start text-secondary">
                                         <span style="font-size: 12px;">[@RecipientNumber] @FormatDate(message.Date)</span><br />
                                         @message.Message
-
                                     </div>
                                 }
                             </div>
@@ -86,6 +113,8 @@
 </div>
 
 @code {
+    private bool IsSidebarOpen { get; set; } = true;
+    private string CurrentTab { get; set; } = "Friends";
     private string RecipientNumber;
     private string SmsText;
     private string UserPhoneNumber;
@@ -97,10 +126,10 @@
     private string NewFriendName;
     private string NewFriendPhone;
     private IEnumerable<Friend> Friends = new List<Friend>();
-
     private Friend SelectedFriend;
     private IEnumerable<SmsMessage> SelectedMessages;
     private string userId { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -121,9 +150,20 @@
             //         .Where(f => f.FriendSipPhoneNumber == SipPhoneNumber)
             //         .ToListAsync();
             // }
-        //    Friends = await friendsService.GetFriendsAsync(); //.Where(f => f.FriendSipPhoneNumber == SipPhoneNumber);
+            // Friends = await friendsService.GetFriendsAsync(); //.Where(f => f.FriendSipPhoneNumber == SipPhoneNumber);
                                                               //         .ToListAsync();
         }
+    }
+
+    private void ToggleSidebar()
+    {
+        IsSidebarOpen = !IsSidebarOpen;
+    }
+
+    private void SwitchTab(string tab)
+    {
+        CurrentTab = tab;
+        SelectedFriend = null;
     }
 
     private async Task SendSms()
@@ -169,23 +209,21 @@
         {
             // Add new friend
             var newFriend = new Friend
-                {
-                    Name = NewFriendName,
-                    PhoneNumber = NewFriendPhone,
-                    FriendSipPhoneNumber = SipPhoneNumber,
-                    UserId = userId
-                };
+            {
+                Name = NewFriendName,
+                PhoneNumber = NewFriendPhone,
+                FriendSipPhoneNumber = SipPhoneNumber,
+                UserId = userId
+            };
             try
             {
                 // DbContext.Friends.Add(newFriend);
                 // await DbContext.SaveChangesAsync();
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogInformation("Error:" + ex.Message);
             }
-
-
-            
         }
         else
         {
@@ -200,12 +238,14 @@
         AddOrEdit = "Add/Edit Friend";
         StateHasChanged();
     }
+
     public void ClearFields()
     {
-          NewFriendName = string.Empty;
+        NewFriendName = string.Empty;
         NewFriendPhone = string.Empty;
         SelectedFriend = null;
     }
+
     private string FormatDate(string dateString)
     {
         if (DateTime.TryParse(dateString, out var date))
@@ -214,14 +254,15 @@
         }
         return dateString;
     }
-private string FormatPhone(string phoneString)
-{
-    if (!string.IsNullOrWhiteSpace(phoneString) && phoneString.Length == 10 && long.TryParse(phoneString, out _))
+
+    private string FormatPhone(string phoneString)
     {
-        return $"({phoneString.Substring(0, 3)}) {phoneString.Substring(3, 3)}-{phoneString.Substring(6)}";
+        if (!string.IsNullOrWhiteSpace(phoneString) && phoneString.Length == 10 && long.TryParse(phoneString, out _))
+        {
+            return $"({phoneString.Substring(0, 3)}) {phoneString.Substring(3, 3)}-{phoneString.Substring(6)}";
+        }
+        return phoneString; // Return the original string if it's not a valid 10-digit phone number
     }
-    return phoneString; // Return the original string if it's not a valid 10-digit phone number
-}
 
     public void DoubleClick()
     {
@@ -229,4 +270,13 @@ private string FormatPhone(string phoneString)
         ClearFields();
     }
 
+    private void HandleChannelSelected(Channel channel)
+    {
+        // Handle channel selection
+    }
+
+    private void HandleThreadSelected(Thread thread)
+    {
+        // Handle thread selection
+    }
 }

@@ -4,8 +4,9 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using SharedLibrary.Models;
+using Thread = SharedLibrary.Models.Thread;
 
-    namespace SMSVideoChat9.Client.Services
+namespace SMSVideoChat9.Client.Services
     {
         public class CustomerService : ICustomerService
         {
@@ -40,5 +41,34 @@
             {
                 await _httpClient.DeleteAsync($"api/Customers/{id}");
             }
+        public async Task<List<Channel>> GetChannelsAsync()
+        {
+            return await _httpClient.GetFromJsonAsync<List<Channel>>("api/channels");
         }
+
+        public async Task AddChannelAsync(Channel channel)
+        {
+            await _httpClient.PostAsJsonAsync("api/channels", channel);
+        }
+
+        public async Task UpdateChannelAsync(Channel channel)
+        {
+            await _httpClient.PutAsJsonAsync($"api/channels/{channel.Id}", channel);
+        }
+
+        public async Task<List<Thread>> GetThreadsAsync()
+        {
+            return await _httpClient.GetFromJsonAsync<List<Thread>>("api/threads");
+        }
+
+        public async Task AddThreadAsync(Thread thread)
+        {
+            await _httpClient.PostAsJsonAsync("api/threads", thread);
+        }
+
+        public async Task UpdateThreadAsync(Thread thread)
+        {
+            await _httpClient.PutAsJsonAsync($"api/threads/{thread.Id}", thread);
+        }
+    }
     }
