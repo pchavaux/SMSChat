@@ -1,0 +1,18 @@
+﻿.sidebar {
+    width: 250px;
+    background-color: #f8f9fa;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    overflow: auto;
+}
+
+.hamburger-menu {
+    font-size: 30px;
+    cursor: pointer;
+}
+
+.sidebar-content {
+    padding: 15px;
+}
