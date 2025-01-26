@@ -17,7 +17,12 @@ namespace SMSChat.Data
         public DbSet<Friend> Friends { get; set; }
         public DbSet<ChatThread> ChatThreads { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
- 
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<SmsMessage> SmsMessages { get; set; }
+        public DbSet<SmsRequest> SmsRequests { get; set; }
+
+        public DbSet<Channel> Channels { get; set; }
+        public DbSet<SMSChat.Models.Thread> Threads { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

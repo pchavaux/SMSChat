@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
- 
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 string bearerToken = "S0hCVVhjY25WS3dUUTRuL0hLT0tEUUVkMnczWTFJSW8vamtNMWhlcXN6TT0="; // Retrieve this securely
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://voip.ms") });

@@ -16,23 +16,96 @@
 
 <div class="container-fluid">
     <div class="row">
+        <!-- Hamburger Menu Button -->
+        <div class="col-12 d-md-none">
+            <button class="btn btn-primary hamburger-btn" @onclick="ToggleSidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
         <!-- Sidebar -->
-        <div class="col-md-3 col-sm-12 bg-light border-end" style="min-height: 100vh;">
-            <h4 class="mt-3">Friends List</h4>
-            <ul class="list-group">
-                @foreach (var friend in Friends)
-                {
-                    <li class="list-group-item list-group-item-action" style="cursor: pointer;" @ondblclick="DoubleClick" @onclick="(() => SelectFriend(friend))">
-                        <strong>@friend.Name</strong><br />
-                        <small>@friend.PhoneNumber</small>
+        <div class="@(IsSidebarOpen ? "col-md-3 sidebar show" : "col-md-3 sidebar") bg-light border-end" style="min-height: 100vh;">
+            <div class="sidebar-content">
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-tabs nav-fill mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link @(CurrentTab == "Friends" ? "active" : "")" @onclick="SwitchToFriends">Friends</a>
                     </li>
-                }
-            </ul>
-            <div class="mt-4">
-                <h5>@AddOrEdit</h5>
-                <input class="form-control mb-2" placeholder="Name" @bind="NewFriendName" />
-                <input class="form-control mb-2" placeholder="Phone Number" @bind="NewFriendPhone" />
-                <button class="btn btn-primary w-100" @onclick="SaveFriend">Save</button>
+                    <li class="nav-item">
+                        <a class="nav-link @(CurrentTab == "Channels" ? "active" : "")" @onclick="SwitchToChannels">Channels</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(CurrentTab == "Threads" ? "active" : "")" @onclick="SwitchToThreads">Threads</a>
+                    </li>
+                </ul>
+
+                <!-- Content based on selected tab -->
+                <div id="FriendsContent" class="tab-content" style="@(CurrentTab == "Friends" ? "" : "display:none;")">
+                    <h4 class="mt-3">Friends List</h4>
+                    <ul class="list-group">
+                        @foreach (var friend in Friends)
+                        {
+                            <li class="list-group-item list-group-item-action" style="cursor: pointer;" @ondblclick="DoubleClick" @onclick="(() => SelectFriend(friend))">
+                                <strong>@friend.Name</strong><br />
+                                <small>@friend.PhoneNumber</small>
+                            </li>
+                        }
+                    </ul>
+                    <div class="mt-4">
+                        <h5>@AddOrEdit</h5>
+                        <input class="form-control mb-2" placeholder="Name" @bind="NewFriendName" />
+                        <input class="form-control mb-2" placeholder="Phone Number" @bind="NewFriendPhone" />
+                        <button class="btn btn-primary w-100" @onclick="SaveFriend">Save</button>
+                    </div>
+                </div>
+
+                <div id="ChannelsContent" class="tab-content" style="@(CurrentTab == "Channels" ? "" : "display:none;")">
+                    <h4 class="mt-3">Channels List</h4>
+                    <ul class="list-group">
+                        @foreach (var channel in Channels)
+                        {
+                            <li class="list-group-item list-group-item-action" style="cursor: pointer;" @onclick="(() => SelectChannel(channel))">
+                                <strong>@channel.Name</strong><br />
+                                <small>@channel.Description</small>
+                            </li>
+                        }
+                    </ul>
+                    <div class="mt-4">
+                        <h5>Add Channel</h5>
+                        <input class="form-control mb-2" placeholder="Name" @bind="NewChannelName" />
+                        <input class="form-control mb-2" placeholder="Description" @bind="NewChannelDescription" />
+                        <input class="form-control mb-2" placeholder="Sip Number" @bind="NewChannelSipNumber" />
+                        <button class="btn btn-primary w-100" @onclick="SaveChannel">Save</button>
+                    </div>
+                </div>
+
+                <div id="ThreadsContent" class="tab-content" style="@(CurrentTab == "Threads" ? "" : "display:none;")">
+                    <h4 class="mt-3">Threads List</h4>
+                    <ul class="list-group">
+                        @foreach (var thread in Threads)
+                        {
+                            <li class="list-group-item list-group-item-action" style="cursor: pointer;" @onclick="(() => SelectThread(thread))">
+                                <strong>@thread.Name</strong><br />
+                                <small>@thread.Description</small>
+                            </li>
+                        }
+                    </ul>
+                    <div class="mt-4">
+                        <h5>Add Thread</h5>
+                        <input class="form-control mb-2" placeholder="Name" @bind="NewThreadName" />
+                        <input class="form-control mb-2" placeholder="Description" @bind="NewThreadDescription" />
+                        <input class="form-control mb-2" placeholder="Sip Number" @bind="NewThreadSipNumber" />
+                        <select class="form-control mb-2" @bind="SelectedChannelId">
+                            <option value="">Select Channel</option>
+                            @foreach (var channel in Channels)
+                            {
+                                <option value="@channel.Id">@channel.Name</option>
+                            }
+                        </select>
+                        <button class="btn btn-primary w-100" @onclick="SaveThread">Save</button>
+                    </div>
+                </div>
+                 
             </div>
         </div>
 
@@ -86,21 +159,34 @@
 </div>
 
 @code {
-    private string RecipientNumber;
-    private string SmsText;
-    private string UserPhoneNumber;
-    private string SipPhoneNumber;
-    private string SipUserName;
-    private string SipServer;
-    private string SipPassword;
+    private bool IsSidebarOpen { get; set; } = true;
+    private string CurrentTab { get; set; } = "Friends";
+    private string RecipientNumber = string.Empty;
+    private string SmsText = string.Empty;
+    private string UserPhoneNumber = string.Empty;
+    private string SipPhoneNumber = string.Empty;
+    private string SipUserName = string.Empty;
+    private string SipServer = string.Empty;
+    private string SipPassword = string.Empty;
     private string AddOrEdit = "Add/Edit Friend";
-    private string NewFriendName;
-    private string NewFriendPhone;
+    private string NewFriendName = string.Empty;
+    private string NewFriendPhone = string.Empty;
+    private string NewChannelName = string.Empty;
+    private string NewChannelDescription = string.Empty;
+    private string NewChannelSipNumber = string.Empty;
+    private string NewThreadName = string.Empty;
+    private string NewThreadDescription = string.Empty;
+    private string NewThreadSipNumber = string.Empty;
+    private int SelectedChannelId;
     private List<Friend> Friends = new();
+    private List<Channel> Channels = new();
+    private List<Thread> Threads = new();
+    private Friend? SelectedFriend;
+    private Channel? SelectedChannel;
+    private Thread? SelectedThread;
+    private IEnumerable<SMSChat.Models.SmsMessage> SelectedMessages = Enumerable.Empty<SMSChat.Models.SmsMessage>();
 
-    private Friend SelectedFriend;
-    private IEnumerable<SmsMessage> SelectedMessages;
-    private string userId { get; set; }
+    private string? userId { get; set; }
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -110,18 +196,35 @@
         {
             var userName = currentUser.Identity.Name;
             var user = await UserManager.Users.FirstOrDefaultAsync(u => u.UserName == userName);
-            userId = user.Id.ToString();
+            userId = user?.Id?.ToString();
             if (user != null)
             {
-                UserPhoneNumber = user.PhoneNumber;
-                SipPhoneNumber = user.SipPhoneNumber;
+                UserPhoneNumber = user.PhoneNumber ?? string.Empty;
+                SipPhoneNumber = user.SipPhoneNumber ?? string.Empty;
 
                 // Load friends from the database
                 Friends = await DbContext.Friends
                     .Where(f => f.FriendSipPhoneNumber == SipPhoneNumber)
                     .ToListAsync();
+
+                // Load channels and threads from the database
+                Channels = await DbContext.Channels.ToListAsync();
+                Threads = await DbContext.Threads.ToListAsync();
             }
         }
+    }
+
+    private void ToggleSidebar()
+    {
+        IsSidebarOpen = !IsSidebarOpen;
+    }
+
+    private void SwitchTab(string tab)
+    {
+        CurrentTab = tab;
+        SelectedFriend = null;
+        SelectedChannel = null;
+        SelectedThread = null;
     }
 
     private async Task SendSms()
@@ -145,7 +248,20 @@
         // Populate the input fields with the selected friend's data
         NewFriendName = friend.Name;
         NewFriendPhone = friend.PhoneNumber;
-        LoadMessages();
+        _ = LoadMessages();
+    }
+
+    private void SelectChannel(Channel channel)
+    {
+        SelectedChannel = channel;
+        // Load threads for the selected channel
+        Threads = DbContext.Threads.Where(t => t.ChannelId == channel.Id).ToList();
+    }
+
+    private void SelectThread(Thread thread)
+    {
+        SelectedThread = thread;
+        // Handle thread selection
     }
 
     private async Task LoadMessages()
@@ -153,8 +269,15 @@
         if (SelectedFriend == null) return;
 
         _logger.LogInformation("Loading messages for {PhoneNumber}", SelectedFriend.PhoneNumber);
-        SelectedMessages = await SmsService.GetSmsMessagesAsync(UserPhoneNumber);
-        SelectedMessages = SelectedMessages?.Where(m => m.Contact == SelectedFriend.PhoneNumber);
+        var serviceMessages = await SmsService.GetSmsMessagesAsync(UserPhoneNumber);
+        SelectedMessages = serviceMessages?.Select(m => new SMSChat.Models.SmsMessage
+            {
+                Id = m.Id,
+                Date = m.Date,
+                Type = m.Type,
+                Message = m.Message,
+                Contact = m.Contact
+            }).Where(m => m.Contact == SelectedFriend.PhoneNumber) ?? Enumerable.Empty<SMSChat.Models.SmsMessage>();
 
         StateHasChanged();
     }
@@ -177,7 +300,8 @@
             {
                 DbContext.Friends.Add(newFriend);
                 await DbContext.SaveChangesAsync();
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogInformation("Error:" + ex.Message);
             }
@@ -197,12 +321,78 @@
         AddOrEdit = "Add/Edit Friend";
         StateHasChanged();
     }
-    public void ClearFields()
+
+    private async Task SaveChannel()
     {
-          NewFriendName = string.Empty;
+        if (string.IsNullOrWhiteSpace(NewChannelName) || string.IsNullOrWhiteSpace(NewChannelDescription) || string.IsNullOrWhiteSpace(NewChannelSipNumber)) return;
+
+        var newChannel = new Channel
+            {
+                Name = NewChannelName,
+                Description = NewChannelDescription,
+                SipNumber = NewChannelSipNumber
+            };
+        try
+        {
+            DbContext.Channels.Add(newChannel);
+            await DbContext.SaveChangesAsync();
+            Channels = await DbContext.Channels.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogInformation("Error:" + ex.Message);
+        }
+        ClearChannelFields();
+        StateHasChanged();
+    }
+
+    private async Task SaveThread()
+    {
+        if (string.IsNullOrWhiteSpace(NewThreadName) || string.IsNullOrWhiteSpace(NewThreadDescription) || string.IsNullOrWhiteSpace(NewThreadSipNumber) || SelectedChannelId == 0) return;
+
+        var newThread = new Thread
+            {
+                Name = NewThreadName,
+                Description = NewThreadDescription,
+                SipNumber = NewThreadSipNumber,
+                ChannelId = SelectedChannelId
+            };
+        try
+        {
+            DbContext.Threads.Add(newThread);
+            await DbContext.SaveChangesAsync();
+            Threads = await DbContext.Threads.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogInformation("Error:" + ex.Message);
+        }
+        ClearThreadFields();
+        StateHasChanged();
+    }
+
+    private void ClearFields()
+    {
+        NewFriendName = string.Empty;
         NewFriendPhone = string.Empty;
         SelectedFriend = null;
     }
+
+    private void ClearChannelFields()
+    {
+        NewChannelName = string.Empty;
+        NewChannelDescription = string.Empty;
+        NewChannelSipNumber = string.Empty;
+    }
+
+    private void ClearThreadFields()
+    {
+        NewThreadName = string.Empty;
+        NewThreadDescription = string.Empty;
+        NewThreadSipNumber = string.Empty;
+        SelectedChannelId = 0;
+    }
+
     private string FormatDate(string dateString)
     {
         if (DateTime.TryParse(dateString, out var date))
@@ -211,19 +401,24 @@
         }
         return dateString;
     }
-private string FormatPhone(string phoneString)
-{
-    if (!string.IsNullOrWhiteSpace(phoneString) && phoneString.Length == 10 && long.TryParse(phoneString, out _))
+
+    private string FormatPhone(string phoneString)
     {
-        return $"({phoneString.Substring(0, 3)}) {phoneString.Substring(3, 3)}-{phoneString.Substring(6)}";
+        if (!string.IsNullOrWhiteSpace(phoneString) && phoneString.Length == 10 && long.TryParse(phoneString, out _))
+        {
+            return $"({phoneString.Substring(0, 3)}) {phoneString.Substring(3, 3)}-{phoneString.Substring(6)}";
+        }
+        return phoneString; // Return the original string if it's not a valid 10-digit phone number
     }
-    return phoneString; // Return the original string if it's not a valid 10-digit phone number
-}
 
     public void DoubleClick()
     {
         AddOrEdit = "Add Friend";
         ClearFields();
     }
+    private void SwitchToFriends() => SwitchTab("Friends");
+    private void SwitchToChannels() => SwitchTab("Channels");
+    private void SwitchToThreads() => SwitchTab("Threads");
+
 
 }
